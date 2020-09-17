@@ -876,13 +876,18 @@ static int igraph_i_layout_reingold_tilford_calc_coords(
     return 0;
 }
 
+/* uncomment the next line for debugging the Reingold-Tilford layout */
+/* #define LAYOUT_RT_DEBUG 1 */
+
 static int igraph_i_layout_reingold_tilford_postorder(
         struct igraph_i_reingold_tilford_vertex *vdata,
         long int node, long int vcount) {
     long int i, j, childcount, leftroot, leftrootidx;
     igraph_real_t avg;
 
-    /* printf("Starting visiting node %d\n", node); */
+#ifdef LAYOUT_RT_DEBUG
+    printf("Starting visiting node %ld\n", node);
+#endif
 
     /* Check whether this node is a leaf node */
     childcount = 0;
@@ -911,24 +916,34 @@ static int igraph_i_layout_reingold_tilford_postorder(
      * will be checked against the left contour of the next subtree */
     leftroot = leftrootidx = -1;
     avg = 0.0;
-    /*printf("Visited node %ld and arranged its subtrees\n", node);*/
+#ifdef LAYOUT_RT_DEBUG
+    printf("Visited node %ld and arranged its subtrees\n", node);
+#endif
     for (i = 0, j = 0; i < vcount; i++) {
         if (i == node) {
             continue;
         }
         if (vdata[i].parent == node) {
-            /*printf("  Placing child %ld on level %ld\n", i, vdata[i].level);*/
+#ifdef LAYOUT_RT_DEBUG
+            printf("  Placing child %ld on level %ld\n", i, vdata[i].level);
+#endif
             if (leftroot >= 0) {
                 /* Now we will follow the right contour of leftroot and the
                  * left contour of the subtree rooted at i */
                 long lnode, rnode, auxnode;
                 igraph_real_t loffset, roffset, minsep, rootsep;
+
+                vdata[node].right_contour = i;
+
                 lnode = leftroot; rnode = i;
                 minsep = 1;
                 rootsep = vdata[leftroot].offset + minsep;
                 loffset = 0; roffset = minsep;
-                /*printf("    Contour: [%ld, %ld], offsets: [%lf, %lf], rootsep: %lf\n",
-                       lnode, rnode, loffset, roffset, rootsep);*/
+
+#ifdef LAYOUT_RT_DEBUG
+                printf("    Contour: [%ld, %ld], offsets: [%lf, %lf], rootsep: %lf\n",
+                       lnode, rnode, loffset, roffset, rootsep);
+#endif
                 while ((lnode >= 0) && (rnode >= 0)) {
                     /* Step to the next level on the right contour of the left subtree */
                     if (vdata[lnode].right_contour >= 0) {
@@ -940,7 +955,9 @@ static int igraph_i_layout_reingold_tilford_postorder(
                         if (vdata[rnode].left_contour >= 0) {
                             auxnode = vdata[lnode].parent;
                             auxnode = vdata[auxnode].left_contour;
-                            /*printf("      Left subtree ended, continuing left subtree's left and right contour on right subtree (node %ld gets connected to node %ld)\n", auxnode, vdata[rnode].left_contour);*/
+#ifdef LAYOUT_RT_DEBUG
+                            printf("      Left subtree ended, continuing left subtree's left and right contour on right subtree (node %ld gets connected to node %ld)\n", auxnode, vdata[rnode].left_contour);
+#endif
 
                             /* this is the "threading" step that the original
                              * paper is talking about. I'm not sure whether
@@ -949,7 +966,7 @@ static int igraph_i_layout_reingold_tilford_postorder(
                              * neat and tidy*/
                             vdata[auxnode].left_contour = vdata[rnode].left_contour;
                             vdata[auxnode].right_contour = vdata[rnode].left_contour;
-                            vdata[auxnode].offset_follow_lc = vdata[lnode].offset_follow_rc =
+                            vdata[auxnode].offset_follow_lc = vdata[auxnode].offset_follow_rc =
                                                                 (roffset - loffset) + vdata[rnode].offset_follow_lc;
                         }
                         lnode = -1;
@@ -965,31 +982,38 @@ static int igraph_i_layout_reingold_tilford_postorder(
                         if (lnode >= 0) {
                             auxnode = vdata[rnode].parent;
                             auxnode = vdata[auxnode].right_contour;
-                            /*printf("      Right subtree ended, continuing right subtree's left and right contour on left subtree (node %ld gets connected to node %ld)\n", auxnode, lnode);*/
+#ifdef LAYOUT_RT_DEBUG
+                            printf("      Right subtree ended, continuing right subtree's left and right contour on left subtree (node %ld gets connected to node %ld)\n", auxnode, lnode);
+#endif
 
                             /* this is the "threading" step that the original
                              * paper is talking about */
                             vdata[auxnode].left_contour = lnode;
                             vdata[auxnode].right_contour = lnode;
-                            vdata[auxnode].offset_follow_lc = vdata[rnode].offset_follow_rc =
+                            vdata[auxnode].offset_follow_lc = vdata[auxnode].offset_follow_rc =
                                                                 (loffset - roffset); /* loffset has also been increased earlier */
                         }
                         rnode = -1;
                     }
-                    /*printf("    Contour: [%ld, %ld], offsets: [%lf, %lf], rootsep: %lf\n", 
-                           lnode, rnode, loffset, roffset, rootsep);*/
+#ifdef LAYOUT_RT_DEBUG
+                    printf("    Contour: [%ld, %ld], offsets: [%lf, %lf], rootsep: %lf\n", 
+                           lnode, rnode, loffset, roffset, rootsep);
+#endif
 
                     /* Push subtrees away if necessary */
                     if ((lnode >= 0) && (rnode >= 0) && (roffset - loffset < minsep)) {
-                        /*printf("    Pushing right subtree away by %lf\n", minsep-roffset+loffset);*/
+#ifdef LAYOUT_RT_DEBUG
+                        printf("    Pushing right subtree away by %lf\n", minsep-roffset+loffset);
+#endif
                         rootsep += minsep - roffset + loffset;
                         roffset = loffset + minsep;
                     }
                 }
 
-                /*printf("  Offset of subtree with root node %ld will be %lf\n", i, rootsep);*/
+#ifdef LAYOUT_RT_DEBUG
+                printf("  Offset of subtree with root node %ld will be %lf\n", i, rootsep);
+#endif
                 vdata[i].offset = rootsep;
-                vdata[node].right_contour = i;
                 vdata[node].offset_follow_rc = rootsep;
                 avg = (avg * j) / (j + 1) + rootsep / (j + 1);
                 leftrootidx = j;
@@ -1008,7 +1032,9 @@ static int igraph_i_layout_reingold_tilford_postorder(
             j++;
         }
     }
-    /*printf("Shifting node to be centered above children. Shift amount: %lf\n", avg);*/
+#ifdef LAYOUT_RT_DEBUG
+    printf("Shifting node %ld to be centered above children. Shift amount: %lf\n", node, avg);
+#endif
     vdata[node].offset_follow_lc -= avg;
     vdata[node].offset_follow_rc -= avg;
     for (i = 0, j = 0; i < vcount; i++) {
