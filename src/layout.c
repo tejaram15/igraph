@@ -930,7 +930,7 @@ static int igraph_i_layout_reingold_tilford_postorder(
             if (leftroot >= 0) {
                 /* Now we will follow the right contour of leftroot and the
                  * left contour of the subtree rooted at i */
-                long lnode, rnode, auxnode;
+                long lnode, rnode, parentnode, auxnode;
                 igraph_real_t loffset, roffset, minsep, rootsep;
 
                 vdata[node].right_contour = i;
@@ -953,21 +953,19 @@ static int igraph_i_layout_reingold_tilford_postorder(
                         /* Left subtree ended there. The right contour of the left subtree
                          * will continue to the next step on the right subtree. */
                         if (vdata[rnode].left_contour >= 0) {
-                            auxnode = vdata[lnode].parent;
-                            auxnode = vdata[auxnode].left_contour;
-#ifdef LAYOUT_RT_DEBUG
-                            printf("      Left subtree ended, continuing left subtree's left and right contour on right subtree (node %ld gets connected to node %ld)\n", auxnode, vdata[rnode].left_contour);
-#endif
+                            parentnode = vdata[lnode].parent;
+                            auxnode = vdata[parentnode].left_contour;
 
                             /* this is the "threading" step that the original
-                             * paper is talking about. I'm not sure whether
-                             * this is needed as we probably won't need the
-                             * contour of auxnode later but let's keep things
-                             * neat and tidy*/
+                             * paper is talking about */
                             vdata[auxnode].left_contour = vdata[rnode].left_contour;
                             vdata[auxnode].right_contour = vdata[rnode].left_contour;
                             vdata[auxnode].offset_follow_lc = vdata[auxnode].offset_follow_rc =
-                                                                (roffset - loffset) + vdata[rnode].offset_follow_lc;
+                                (vdata[parentnode].offset_follow_rc - vdata[parentnode].offset_follow_lc) + (roffset - loffset) + vdata[rnode].offset_follow_lc;
+#ifdef LAYOUT_RT_DEBUG
+                            printf("      Left subtree ended, continuing left subtree's left and right contour on right subtree (node %ld gets connected to node %ld)\n", auxnode, vdata[rnode].left_contour);
+                            printf("      New contour following offset for node %ld is %lf\n", auxnode, vdata[auxnode].offset_follow_lc);
+#endif
                         }
                         lnode = -1;
                     }
@@ -980,18 +978,19 @@ static int igraph_i_layout_reingold_tilford_postorder(
                          * subtree will continue to the next step on the left subtree.
                          * Note that lnode has already been advanced here */
                         if (lnode >= 0) {
-                            auxnode = vdata[rnode].parent;
-                            auxnode = vdata[auxnode].right_contour;
-#ifdef LAYOUT_RT_DEBUG
-                            printf("      Right subtree ended, continuing right subtree's left and right contour on left subtree (node %ld gets connected to node %ld)\n", auxnode, lnode);
-#endif
+                            parentnode = vdata[rnode].parent;
+                            auxnode = vdata[parentnode].right_contour;
 
                             /* this is the "threading" step that the original
                              * paper is talking about */
                             vdata[auxnode].left_contour = lnode;
                             vdata[auxnode].right_contour = lnode;
                             vdata[auxnode].offset_follow_lc = vdata[auxnode].offset_follow_rc =
-                                                                (loffset - roffset); /* loffset has also been increased earlier */
+                                (vdata[parentnode].offset_follow_lc - vdata[parentnode].offset_follow_rc) + (loffset - roffset); /* loffset has also been increased earlier */
+#ifdef LAYOUT_RT_DEBUG
+                            printf("      Right subtree ended, continuing right subtree's left and right contour on left subtree (node %ld gets connected to node %ld)\n", auxnode, lnode);
+                            printf("      New contour following offset for node %ld is %lf\n", auxnode, vdata[auxnode].offset_follow_lc);
+#endif
                         }
                         rnode = -1;
                     }
