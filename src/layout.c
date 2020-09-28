@@ -995,10 +995,10 @@ static int igraph_i_layout_reingold_tilford_postorder(
                             /* since we attached a larger subtree to the
                              * already placed left subtree, we need to update
                              * the extrema of the subtree rooted at 'node' */
-                            vdata[node].left_extreme = vdata[rnode].left_extreme;
-                            vdata[node].right_extreme = vdata[rnode].right_extreme;
-                            vdata[node].offset_to_left_extreme = vdata[rnode].offset_to_left_extreme + rootsep;
-                            vdata[node].offset_to_right_extreme = vdata[rnode].offset_to_right_extreme + rootsep;
+                            vdata[node].left_extreme = vdata[i].left_extreme;
+                            vdata[node].right_extreme = vdata[i].right_extreme;
+                            vdata[node].offset_to_left_extreme = vdata[i].offset_to_left_extreme + rootsep;
+                            vdata[node].offset_to_right_extreme = vdata[i].offset_to_right_extreme + rootsep;
 #ifdef LAYOUT_RT_DEBUG
                             printf("      Left subtree ended earlier, continuing left subtree's left and right contour on right subtree (node %ld gets connected to node %ld)\n", auxnode, vdata[rnode].left_contour);
                             printf("      New contour following offset for node %ld is %lf\n", auxnode, vdata[auxnode].offset_to_left_contour);
