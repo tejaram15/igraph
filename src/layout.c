@@ -1026,7 +1026,7 @@ static int igraph_i_layout_reingold_tilford_postorder(
 
                             /* this is the "threading" step that the original
                              * paper is talking about */
-                            newoffset = rootsep + vdata[i].offset_to_right_extreme - loffset;
+                            newoffset = loffset - rootsep - vdata[i].offset_to_right_extreme;
                             vdata[auxnode].left_contour = lnode;
                             vdata[auxnode].right_contour = lnode;
                             vdata[auxnode].offset_to_left_contour = vdata[auxnode].offset_to_right_contour = newoffset;
