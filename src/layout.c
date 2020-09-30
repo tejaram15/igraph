@@ -1008,8 +1008,8 @@ static int igraph_i_layout_reingold_tilford_postorder(
                              * left extreme node of the subtree rooted at
                              * 'node' remains the same but the right extreme
                              * will change */
-                            vdata[node].right_extreme = vdata[rnode].right_extreme;
-                            vdata[node].offset_to_right_extreme = vdata[rnode].offset_to_right_extreme + rootsep;
+                            vdata[node].right_extreme = vdata[i].right_extreme;
+                            vdata[node].offset_to_right_extreme = vdata[i].offset_to_right_extreme + rootsep;
                         }
                         lnode = -1;
                     }
