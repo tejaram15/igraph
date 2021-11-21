@@ -88,6 +88,7 @@ add_library(
   constructors/de_bruijn.c
   constructors/famous.c
   constructors/full.c
+  constructors/generalized_petersen.c
   constructors/kautz.c
   constructors/lcf.c
   constructors/linegraph.c
@@ -98,12 +99,10 @@ add_library(
   games/callaway_traits.c
   games/citations.c
   games/correlated.c
-  games/degree_sequence_vl/gengraph_box_list.cpp
   games/degree_sequence_vl/gengraph_degree_sequence.cpp
   games/degree_sequence_vl/gengraph_graph_molloy_hash.cpp
   games/degree_sequence_vl/gengraph_graph_molloy_optimized.cpp
   games/degree_sequence_vl/gengraph_mr-connected.cpp
-  games/degree_sequence_vl/gengraph_powerlaw.cpp
   games/degree_sequence.c
   games/dotproduct.c
   games/erdos_renyi.c
@@ -125,6 +124,10 @@ add_library(
   centrality/centralization.c
   centrality/closeness.c
   centrality/coreness.c
+  centrality/eigenvector.c
+  centrality/hub_authority.c
+  centrality/pagerank.c
+  centrality/truss.cpp
   centrality/prpack.cpp
 
   cliques/cliquer_wrapper.c
@@ -228,6 +231,7 @@ add_library(
   paths/shortest_paths.c
   paths/simple_paths.c
   paths/unweighted.c
+  paths/sparsifier.c
 
   properties/basic_properties.c
   properties/constraint.c
@@ -238,16 +242,10 @@ add_library(
   properties/loops.c
   properties/multiplicity.c
   properties/neighborhood.c
+  properties/perfect.c
   properties/spectral.c
   properties/trees.c
   properties/triangles.c
-
-  scg/scg_approximate_methods.c
-  scg/scg_exact_scg.c
-  scg/scg_kmeans.c
-  scg/scg_optimal_method.c
-  scg/scg_utils.c
-  scg/scg.c
 
   isomorphism/bliss.cc
   isomorphism/isoclasses.c
@@ -287,7 +285,6 @@ add_library(
   $<IF:$<OR:$<BOOL:${ARPACK_IS_VENDORED}>,$<BOOL:${BLAS_IS_VENDORED}>,$<BOOL:${LAPACK_IS_VENDORED}>>,$<TARGET_OBJECTS:f2c_vendored>,>
   $<IF:$<BOOL:${ARPACK_IS_VENDORED}>,$<TARGET_OBJECTS:arpack_vendored>,>
   $<IF:$<BOOL:${BLAS_IS_VENDORED}>,$<TARGET_OBJECTS:blas_vendored>,>
-  $<IF:$<BOOL:${CXSPARSE_IS_VENDORED}>,$<TARGET_OBJECTS:cxsparse_vendored>,>
   $<IF:$<BOOL:${GLPK_IS_VENDORED}>,$<TARGET_OBJECTS:glpk_vendored>,>
   $<IF:$<BOOL:${GMP_IS_VENDORED}>,$<TARGET_OBJECTS:gmp_vendored>,>
   $<IF:$<BOOL:${LAPACK_IS_VENDORED}>,$<TARGET_OBJECTS:lapack_vendored>,>
@@ -303,6 +300,10 @@ target_compile_definitions(
   PRIVATE
   IGRAPH_VERIFY_FINALLY_STACK=$<IF:$<BOOL:${IGRAPH_VERIFY_FINALLY_STACK}>,1,0>
 )
+# target_compile_options(
+#   # -Wconversion could be useful?
+#   igraph PRIVATE -Wshorten-64-to-32
+# )
 
 # Make sure that a macro named IGRAPH_FILE_BASENAME is provided in every
 # compiler call so we can use these in debug messages without revealing the
@@ -325,7 +326,6 @@ target_include_directories(
   ${PROJECT_SOURCE_DIR}/vendor
 
   # Vendored library include paths
-  $<$<BOOL:${CXSPARSE_IS_VENDORED}>:$<TARGET_PROPERTY:cxsparse_vendored,INCLUDE_DIRECTORIES>>
   $<$<BOOL:${GLPK_IS_VENDORED}>:$<TARGET_PROPERTY:glpk_vendored,INCLUDE_DIRECTORIES>>
 
   # Include paths for dependencies
@@ -371,15 +371,8 @@ endif()
 target_link_libraries(
   igraph
   PRIVATE
-  bliss cliquer plfit prpack
+  bliss cliquer cxsparse_vendored plfit prpack
 )
-
-# Disable complex number support for CXSparse because:
-#   - It is necessary to compile with MSVC
-#   - igraph does not need complex number support from CXSparse on any platform
-# This is needed here (in addition to the cxsparse_vendored target) because
-# igraph may be compiled with an external CXSparse.
-target_compile_definitions(igraph PRIVATE NCOMPLEX)
 
 if (NOT BUILD_SHARED_LIBS)
   target_compile_definitions(igraph PRIVATE IGRAPH_STATIC)
@@ -427,7 +420,7 @@ write_basic_package_version_file(
 
 # Define how to install the library
 install(
-  TARGETS igraph bliss cliquer plfit prpack
+  TARGETS igraph bliss cliquer cxsparse_vendored plfit prpack
   EXPORT igraph_targets
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}

@@ -328,14 +328,14 @@ igraph_are_connected:
 igraph_diameter:
     PARAMS: |-
         GRAPH graph, OUT REALPTR res, OUT INTEGERPTR from,
-        OUT INTEGERPTR to, OUT VECTOR_OR_0 path, BOOLEAN directed=True,
+        OUT INTEGERPTR to, OUT VECTOR_OR_0 vertex_path, OUT VECTOR_OR_0 edge_path, BOOLEAN directed=True,
         BOOLEAN unconnected=True
 
 igraph_diameter_dijkstra:
     PARAMS: |-
         GRAPH graph, EDGEWEIGHTS weights=NULL,
         OUT REALPTR res, OUT INTEGERPTR from,
-        OUT INTEGERPTR to, OUT VECTOR_OR_0 path, BOOLEAN directed=True,
+        OUT INTEGERPTR to,  OUT VECTOR_OR_0 vertex_path, OUT VECTOR_OR_0 edge_path, BOOLEAN directed=True,
         BOOLEAN unconnected=True
     DEPS: weights ON graph
 
@@ -382,9 +382,9 @@ igraph_get_shortest_paths:
 
 igraph_get_all_shortest_paths:
     PARAMS: |-
-        GRAPH graph, OUT VERTEXSETLIST res, OUT VECTOR nrgeo,
+        OUT EDGESETLIST_OR_0 edges, OUT VECTOR_OR_0 nrgeo,
         VERTEX from, VERTEXSET to, NEIMODE mode=OUT
-    DEPS: res ON graph, from ON graph, to ON graph
+    DEPS: edges ON graph, from ON graph, to ON graph
 
 igraph_shortest_paths_dijkstra:
     PARAMS: |-
@@ -416,7 +416,7 @@ igraph_get_shortest_paths_bellman_ford:
 
 igraph_get_all_shortest_paths_dijkstra:
     PARAMS: |-
-        GRAPH graph, OUT VERTEXSETLIST res, OUT VECTOR nrgeo,
+        GRAPH graph, OUT VERTEXSETLIST_OR_0 vertices, OUT EDGESETLIST_OR_0 edges, OUT VECTOR_OR_0 nrgeo,
         VERTEX from, VERTEXSET to=ALL, EDGEWEIGHTS weights,
         NEIMODE mode=OUT
     DEPS: weights ON graph, to ON graph, res ON graph, from ON graph
@@ -439,6 +439,11 @@ igraph_get_all_simple_paths:
         VERTEXSET to=ALL, INTEGER cutoff=-1, NEIMODE mode=OUT
     DEPS: from ON graph, to ON graph, res ON graph
 
+igraph_spanner:
+    DEPS: from ON graph, to ON graph, res ON graph
+    IGNORE: RR
+    PARAMS: INT seed
+
 igraph_subcomponent:
     PARAMS: GRAPH graph, OUT VERTEXSET res, VERTEX vid, NEIMODE mode=ALL
     DEPS: vid ON graph, res ON graph
@@ -458,6 +463,14 @@ igraph_betweenness_cutoff:
     DEPS: vids ON graph, weights ON graph, res ON graph vids
     FLAGS: PROGRESS
 
+igraph_betweenness_subset:
+    DEPS: vids ON graph, weights ON graph, res ON graph vids
+    FLAGS: PROGRESS
+    IGNORE: RR
+    PARAMS: |-
+        GRAPH graph, OUT VERTEXINDEX res, VERTEXSET vids=ALL,
+        BOOLEAN directed=True, EDGEWEIGHTS weights=NULL
+
 igraph_edge_betweenness:
     PARAMS: |-
         GRAPH graph, OUT VECTOR res, BOOLEAN directed=True,
@@ -469,6 +482,12 @@ igraph_edge_betweenness_cutoff:
         GRAPH graph, OUT VECTOR res, BOOLEAN directed=True,
         EDGEWEIGHTS weights=NULL, REAL cutoff
     DEPS: weights ON graph
+
+igraph_edge_betweenness_subset:
+    DEPS: vids ON graph, weights ON graph, res ON graph vids
+    FLAGS: PROGRESS
+    IGNORE: RR
+    PARAMS: BOOLEAN directed=True, EDGEWEIGHTS weights=NULL
 
 igraph_pagerank:
     PARAMS: |-
@@ -574,7 +593,7 @@ igraph_neighborhood_graphs:
     DEPS: vids ON graph
 
 igraph_topological_sorting:
-    PARAMS: GRAPH graph, OUT VECTOR res, NEIMODE mode=OUT
+    PARAMS: GRAPH graph, OUT VECTOR_INT res, NEIMODE mode=OUT
 
 igraph_is_loop:
     PARAMS: GRAPH graph, OUT VECTOR_BOOL res, EDGESET es=ALL
@@ -600,6 +619,10 @@ igraph_count_multiple:
 igraph_girth:
     PARAMS: GRAPH graph, OUT INTEGERPTR girth, OUT VERTEXSET circle
     DEPS: circle ON graph
+
+igraph_is_perfect:
+    IGNORE: RR, RC, RNamespace
+    PARAMS: GRAPH graph, OUT BOOLEANPTR res
 
 igraph_add_edge:
     PARAMS: INOUT GRAPH graph, INTEGER from, INTEGER to
@@ -756,6 +779,12 @@ igraph_eccentricity:
 igraph_radius:
     PARAMS: GRAPH graph, OUT REALPTR radius, NEIMODE mode=ALL
 
+igraph_pseudo_diameter:
+    NAME-R: pseudo_diameter
+    PARAMS: |-
+        GRAPH graph, OUT REALPTR diameter, INTEGER start_vid,
+        OUT INTEGERPTR from=NULL, OUT INTEGERPTR to=NULL
+
 igraph_diversity:
     PARAMS: |-
         GRAPH graph, EDGEWEIGHTS weights=NULL, OUT VERTEXINDEX res,
@@ -774,20 +803,20 @@ igraph_random_walk:
 
 igraph_is_bigraphical:
     PARAMS: |-
-        VECTOR degrees1, VECTOR degrees2,
+        VECTOR_INT degrees1, VECTOR_INT degrees2,
         EDGE_TYPE_SW allowed_edge_types=SIMPLE, OUT BOOLEANPTR res
 
 igraph_is_degree_sequence:
-    PARAMS: VECTOR out_deg, VECTOR_OR_0 in_deg=NULL, OUT BOOLEANPTR res
+    PARAMS: VECTOR_INT out_deg, VECTOR_INT_OR_0 in_deg=NULL, OUT BOOLEANPTR res
     FLAGS: DEPRECATED
 
 igraph_is_graphical:
     PARAMS: |-
-        VECTOR out_deg, VECTOR_OR_0 in_deg=NULL,
+        VECTOR_INT out_deg, VECTOR_INT_OR_0 in_deg=NULL,
         EDGE_TYPE_SW allowed_edge_types=SIMPLE, OUT BOOLEANPTR res
 
 igraph_is_graphical_degree_sequence:
-    PARAMS: VECTOR out_deg, VECTOR_OR_0 in_deg=NULL, OUT BOOLEANPTR res
+    PARAMS: VECTOR_INT out_deg, VECTOR_INT_OR_0 in_deg=NULL, OUT BOOLEANPTR res
     FLAGS: DEPRECATED
 
 #######################################
@@ -880,7 +909,7 @@ igraph_laplacian:
 
 igraph_clusters:
     PARAMS: |-
-        GRAPH graph, OUT VECTOR membership, OUT VECTOR csize,
+        GRAPH graph, OUT VECTOR_INT membership, OUT VECTOR_INT csize,
         OUT INTEGERPTR no, CONNECTEDNESS mode=WEAK
 
 igraph_is_connected:
@@ -889,7 +918,7 @@ igraph_is_connected:
 igraph_decompose:
     PARAMS: |-
         GRAPH graph, OUT GRAPHLIST components, CONNECTEDNESS mode=WEAK,
-        LONGINT maxcompno=-1, LONGINT minelements=1
+        INTEGER maxcompno=-1, INTEGER minelements=1
 
 igraph_articulation_points:
     PARAMS: GRAPH graph, OUT VERTEXSET res
@@ -1135,20 +1164,20 @@ igraph_similarity_inverse_log_weighted:
 
 igraph_compare_communities:
     PARAMS: |-
-        VECTOR comm1, VECTOR comm2, OUT REALPTR res,
+        VECTOR_INT comm1, VECTOR_INT comm2, OUT REALPTR res,
         COMMCMP method=VI
 
 igraph_community_spinglass:
     PARAMS: |-
         GRAPH graph, VECTOR_OR_0 weights, OUT REALPTR modularity,
-        OUT REALPTR temperature, OUT VECTOR membership, OUT VECTOR csize,
+        OUT REALPTR temperature, OUT VECTOR_INT membership, OUT VECTOR_INT csize,
         INTEGER spins=25, BOOLEAN parupdate=False, REAL starttemp=1, REAL stoptemp=0.01,
         REAL coolfact=0.99, SPINCOMMUPDATE update_rule=CONFIG, REAL gamma=1.0,
         REAL gamma_minus=0, REAL d_p=0, REAL d_n=0
 
 igraph_community_spinglass_single:
     PARAMS: |-
-        GRAPH graph, VECTOR_OR_0 weights, INTEGER vertex, OUT VECTOR community,
+        GRAPH graph, VECTOR_OR_0 weights, INTEGER vertex, OUT VECTOR_INT community,
         OUT REALPTR cohesion, OUT REALPTR adhesion,
         OUT INTEGERPTR inner_links, OUT INTEGERPTR outer_links,
         INTEGER spins=25, SPINCOMMUPDATE update_rule=CONFIG, REAL gamma=1.0
@@ -1156,13 +1185,13 @@ igraph_community_spinglass_single:
 igraph_community_walktrap:
     PARAMS: |-
         GRAPH graph, VECTOR weights, INT steps=4, OUT MATRIX merges,
-        OUT VECTOR modularity, OUT VECTOR membership
+        OUT VECTOR modularity, OUT VECTOR_INT membership
 
 igraph_community_edge_betweenness:
     PARAMS: |-
         GRAPH graph, OUT VECTOR result, OUT VECTOR edge_betweenness,
         OUT MATRIX merges, OUT VECTOR bridges,
-        OUT VECTOR_OR_0 modularity, OUT VECTOR_OR_0 membership,
+        OUT VECTOR_OR_0 modularity, OUT VECTOR_INT_OR_0 membership,
         BOOLEAN directed=True, EDGEWEIGHTS weights=NULL
     DEPS: weights ON graph
 
@@ -1170,23 +1199,23 @@ igraph_community_eb_get_merges:
     PARAMS: |-
         GRAPH graph, VECTOR edges, EDGEWEIGHTS weights=NULL,
         OUT MATRIX merges, OUT VECTOR bridges,
-        OUT VECTOR_OR_0 modularity, OUT VECTOR_OR_0 membership
+        OUT VECTOR_OR_0 modularity, OUT VECTOR_INT_OR_0 membership
     DEPS: weights ON graph
 
 igraph_community_fastgreedy:
     PARAMS: |-
         GRAPH graph, VECTOR_OR_0 weights, OUT MATRIX merges, OUT VECTOR modularity,
-        OUT VECTOR_OR_0 membership
+        OUT VECTOR_INT_OR_0 membership
 
 igraph_community_to_membership:
     PARAMS: |-
         GRAPH graph, MATRIX merges, INTEGER steps,
-        OUT VECTOR membership, OUT VECTOR csize
+        OUT VECTOR_INT membership, OUT VECTOR_INT csize
 
 igraph_le_community_to_membership:
     PARAMS: |-
-        MATRIX merges, INTEGER steps, INOUT VECTOR membership,
-        OUT VECTOR_OR_0 csize
+        MATRIX merges, INTEGER steps, INOUT VECTOR_INT membership,
+        OUT VECTOR_INT_OR_0 csize
 
 igraph_modularity:
     PARAMS: |-
@@ -1203,12 +1232,12 @@ igraph_modularity_matrix:
     DEPS: weights ON graph
 
 igraph_reindex_membership:
-    PARAMS: INOUT VECTOR membership, OUT VECTOR_OR_0 new_to_old
+    PARAMS: INOUT VECTOR_INT membership, OUT VECTOR_OR_0 new_to_old
 
 igraph_community_leading_eigenvector:
     PARAMS: |-
         GRAPH graph, EDGEWEIGHTS weights=NULL,
-        OUT MATRIX merges, OUT VECTOR membership,
+        OUT MATRIX merges, OUT VECTOR_INT membership,
         INTEGER steps=-1,
         INOUT ARPACKOPT options=arpack_defaults,
         OUT REALPTR modularity, BOOLEAN start=False,
@@ -1220,11 +1249,11 @@ igraph_community_leading_eigenvector:
 igraph_community_fluid_communities:
     PARAMS: |-
         GRAPH graph, INTEGER no_of_communities,
-        OUT VECTOR membership, OUT REALPTR modularity
+        OUT VECTOR_INT membership, OUT REALPTR modularity
 
 igraph_community_label_propagation:
     PARAMS: |-
-        GRAPH graph, OUT VECTOR membership, EDGEWEIGHTS weights=NULL,
+        GRAPH graph, OUT VECTOR_INT membership, EDGEWEIGHTS weights=NULL,
         VECTOR_OR_0 initial=NULL, VECTOR_BOOL_OR_0 fixed=NULL,
         OUT REALPTR modularity
     DEPS: weights ON graph
@@ -1233,14 +1262,14 @@ igraph_community_multilevel:
     PARAMS: |-
         GRAPH graph, EDGEWEIGHTS weights=NULL,
         REAL resolution=1.0,
-        OUT VECTOR membership,
-        OUT MATRIX_OR_0 memberships, OUT VECTOR_OR_0 modularity
+        OUT VECTOR_INT membership,
+        OUT MATRIX_INT_OR_0 memberships, OUT VECTOR_OR_0 modularity
     DEPS: weights ON graph
 
 igraph_community_optimal_modularity:
     PARAMS: |-
         GRAPH graph, OUT REALPTR modularity,
-        OUT VECTOR_OR_0 membership,
+        OUT VECTOR_INT_OR_0 membership,
         EDGEWEIGHTS weights=NULL
     DEPS: weights ON graph
 
@@ -1249,13 +1278,13 @@ igraph_community_leiden:
         GRAPH graph, EDGEWEIGHTS weights=NULL,
         VERTEXWEIGHTS vertex_weights=NULL,
         REAL resolution_parameter, REAL beta,
-        BOOLEAN start, INOUT VECTOR_OR_0 membership,
+        BOOLEAN start, INOUT VECTOR_INT_OR_0 membership,
         OUT INTEGERPTR nb_clusters, OUT REALPTR quality
     DEPS: weights ON graph, vertex_weights ON graph
 
 igraph_split_join_distance:
     PARAMS: |-
-        VECTOR comm1, VECTOR comm2, OUT INTEGERPTR distance12,
+        VECTOR_INT comm1, VECTOR_INT comm2, OUT INTEGERPTR distance12,
         OUT INTEGERPTR distance21
 
 igraph_hrg_fit:
@@ -1290,7 +1319,7 @@ igraph_community_infomap:
     PARAMS: |-
         GRAPH graph, EDGEWEIGHTS e_weights=NULL,
         VERTEXWEIGHTS v_weights=NULL, INT nb_trials=10,
-        OUT VECTOR membership, OUT REALPTR codelength
+        OUT VECTOR_INT membership, OUT REALPTR codelength
     DEPS: e_weights ON graph, v_weights ON graph
 
 igraph_graphlets:
@@ -1638,7 +1667,7 @@ igraph_cohesive_blocks:
 #######################################
 
 igraph_coreness:
-    PARAMS: GRAPH graph, OUT VECTOR cores, NEIMODE mode=ALL
+    PARAMS: GRAPH graph, OUT VECTOR_INT cores, NEIMODE mode=ALL
 
 #######################################
 # Graph isomorphism
@@ -1735,7 +1764,7 @@ igraph_canonical_permutation:
         BLISSINFO info
 
 igraph_permute_vertices:
-    PARAMS: GRAPH graph, OUT GRAPH res, VECTORM1 permutation
+    PARAMS: GRAPH graph, OUT GRAPH res, VECTOR_INT_M1 permutation
 
 igraph_isomorphic_bliss:
     PARAMS: |-
@@ -1906,7 +1935,7 @@ igraph_random_sample:
     PARAMS: OUT VECTOR res, INTEGER l, INTEGER h, INTEGER length
 
 igraph_convex_hull:
-    PARAMS: MATRIX data, OUT VECTOR resverts, OUT MATRIX rescoords
+    PARAMS: MATRIX data, OUT VECTOR_INT resverts, OUT MATRIX rescoords
 
 igraph_dim_select:
     PARAMS: VECTOR sv, OUT INTEGERPTR dim
@@ -1927,6 +1956,6 @@ igraph_eulerian_cycle:
 #######################################
 # Other, (yet) undocumented functions
 #######################################
-#
+
 igraph_convergence_degree:
     PARAMS: GRAPH graph, OUT VECTOR result, OUT VECTOR in, OUT VECTOR out
